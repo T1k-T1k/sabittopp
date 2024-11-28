@@ -1,0 +1,109 @@
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+local isAutoTPEnabled = false
+local character = player.Character or player.CharacterAdded:Wait()
+
+local noClipConnection = nil
+
+-- Tp to Hakari
+local function autoTeleport()
+    if not isAutoTPEnabled then return end
+    
+    local hakariModel = workspace:FindFirstChild("Victim") and workspace.Victim:FindFirstChild("Hakari")
+    if hakariModel and hakariModel:FindFirstChild("HumanoidRootPart") and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = hakariModel.HumanoidRootPart
+        local backOffset = hrp.CFrame.LookVector * -4.5
+        local targetPosition = hrp.Position + backOffset
+
+        -- tp player
+        character:MoveTo(targetPosition)
+    end
+end
+-- Reset support
+local function onCharacterAdded(newCharacter)
+    character = newCharacter
+end
+player.CharacterAdded:Connect(onCharacterAdded)
+
+local function setNoClip(enabled)
+    if enabled then
+        noClipConnection = runService.Stepped:Connect(function()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    else
+        if noClipConnection then
+            noClipConnection:Disconnect()
+            noClipConnection = nil
+        end
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- Gui
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "AutoTPGui"
+
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 300, 0, 150)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 2
+mainFrame.Draggable = true
+mainFrame.Active = true
+mainFrame.Selectable = true
+
+local titleLabel = Instance.new("TextLabel", mainFrame)
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Text = "Auto TP to Hakari"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 20
+titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+titleLabel.BorderSizePixel = 0
+
+local toggleButton = Instance.new("TextButton", mainFrame)
+toggleButton.Size = UDim2.new(0.5, -10, 0, 50)
+toggleButton.Position = UDim2.new(0.25, 0, 0.4, 0)
+toggleButton.Text = "Enable"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.SourceSans
+toggleButton.TextSize = 18
+toggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+
+local statusLabel = Instance.new("TextLabel", mainFrame)
+statusLabel.Size = UDim2.new(1, 0, 0, 30)
+statusLabel.Position = UDim2.new(0, 0, 0.8, 0)
+statusLabel.Text = "Status: OFF"
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.Font = Enum.Font.SourceSans
+statusLabel.TextSize = 18
+statusLabel.BackgroundTransparency = 1
+
+-- Button function
+toggleButton.MouseButton1Click:Connect(function()
+    isAutoTPEnabled = not isAutoTPEnabled
+    
+    -- On/Off noclip
+    setNoClip(isAutoTPEnabled)
+    
+    if isAutoTPEnabled then
+        toggleButton.Text = "Disable"
+        statusLabel.Text = "Status: ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 69, 0) -- Red color
+    else
+        toggleButton.Text = "Enable"
+        statusLabel.Text = "Status: OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180) -- Blue color
+    end
+end)
+
+-- Constant loop for tp
+runService.Heartbeat:Connect(autoTeleport)
